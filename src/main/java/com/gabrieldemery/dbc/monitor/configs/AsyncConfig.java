@@ -2,6 +2,8 @@ package com.gabrieldemery.dbc.monitor.configs;
 
 import java.util.concurrent.Executor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -25,12 +27,14 @@ import lombok.extern.slf4j.Slf4j;
 @EnableConfigurationProperties(AsyncProperties.class)
 public class AsyncConfig implements AsyncConfigurer {
 	
-	private final AsyncProperties properties;
+	private final Logger logger = LoggerFactory.getLogger(CustomAsyncExceptionHandler.class);
+	
+	private AsyncProperties properties;
 
     @Override
     @Bean(name = "taskExecutor")
     public Executor getAsyncExecutor() {
-        log.debug("Creating Async Task Executor");
+        this.logger.debug("Creating Async Task Executor");
         ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
         taskExecutor.setCorePoolSize(properties.getCorePoolSize());
         taskExecutor.setMaxPoolSize(properties.getMaxPoolSize());
