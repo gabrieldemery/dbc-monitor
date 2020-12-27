@@ -4,12 +4,11 @@ import java.io.IOException;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.Objects;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -20,12 +19,12 @@ import com.gabrieldemery.dbc.monitor.services.ReaderService;
 import com.gabrieldemery.dbc.monitor.services.WriterService;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class MonitorServiceImpl implements MonitorService {
-	
-	private final Logger logger = LoggerFactory.getLogger(MonitorServiceImpl.class);
 	
 	@Autowired
 	private WatchService watchService;
@@ -40,7 +39,7 @@ public class MonitorServiceImpl implements MonitorService {
 	@PostConstruct
 	public void launchMonitoring() {
 		
-		this.logger.info("START_MONITORING");
+		log.info("Starting monitoring of the input folder.");
 		
 		try {
 			WatchKey key;
@@ -51,27 +50,33 @@ public class MonitorServiceImpl implements MonitorService {
 				key.reset();
 			}
 		} catch (InterruptedException e) {
-			this.logger.warn("interrupted exception for monitoring service");
+			log.warn("Stopping input folder monitoring.");
 		}
 	}
 
 	@PreDestroy
 	public void stopMonitoring() {
 		
-		this.logger.info("STOP_MONITORING");
+		log.info("Stop monitoring the input folder.");
 
 		if (this.watchService != null) {
 			try {
 				this.watchService.close();
 			} catch (IOException e) {
-				this.logger.error("exception while closing the monitoring service");
+				log.error("Failed to end monitoring of the input folder.");
 			}
 		}
 	}
 	
+	/**
+	 * Process created file.
+	 * @param fileName (String) File name.
+	 */
 	private void processFile(String fileName) {
 		OutputFileModel outputFile = this.readerService.processFile(fileName);
-		this.writerService.processFile(fileName, outputFile);
+		if (Objects.nonNull(outputFile)) {
+			this.writerService.processFile(fileName, outputFile);
+		}
 	}
 
 }

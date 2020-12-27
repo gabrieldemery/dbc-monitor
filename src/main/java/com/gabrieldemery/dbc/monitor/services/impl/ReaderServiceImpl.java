@@ -6,8 +6,6 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -16,10 +14,11 @@ import com.gabrieldemery.dbc.monitor.models.OutputFileModel;
 import com.gabrieldemery.dbc.monitor.services.ReaderService;
 import com.gabrieldemery.dbc.monitor.utils.InputFileUtils;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class ReaderServiceImpl implements ReaderService {
-	
-	private final Logger logger = LoggerFactory.getLogger(ReaderServiceImpl.class);
 	
 	@Value("${file.input.extension}")
     private String extensionAllowed;
@@ -29,20 +28,22 @@ public class ReaderServiceImpl implements ReaderService {
 	
 	@Autowired
 	InputFileUtils inputFileUtils;
-
+	
 	@Override
 	public OutputFileModel processFile(String fileName) {
 		
-		this.logger.info("Starting to read file: {}", fileName);
+		log.info("Starting to read file: {}", fileName);
 		
 		OutputFileModel outputFileModel = null;
 
         try {
             this.checkFile(fileName);
             this.checkExtension(fileName);
+            
+            String pathWithFile = this.getPathInput().concat("\\").concat(fileName);
 
             List<String> lines  = new ArrayList<>();
-            try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+            try (BufferedReader br = new BufferedReader(new FileReader(pathWithFile))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     if(!line.isEmpty())
@@ -55,28 +56,45 @@ public class ReaderServiceImpl implements ReaderService {
             }
 
         } catch (Exception e) {
-            this.logger.error("Error to read file: {}. {}", fileName, e.getMessage());
+            log.error("Error to read file: {}. {}", fileName, e.getMessage());
         }
 
-        this.logger.info("Ending to read file: {}", fileName);
+        log.info("Ending to read file: {}", fileName);
         
         return outputFileModel;
 	}
+    
+    /**
+     * Full path of the input folder.
+     * @return (String) Input folder path.
+     */
+	private String getPathInput() {
+		String pathInput =  System.getProperty("user.home").concat("\\").concat(this.folderMonitorPath);
+		log.info("Input Path: {}", pathInput);
+		return pathInput;
+	}
 	
+	/**
+	 * Check if the file exists in the input folder.
+	 * @param fileName (String) File name.
+	 * @throws Exception
+	 */
 	private void checkFile(String fileName) throws Exception {
-		File file = new File(this.folderMonitorPath + "/" + fileName);
+		File file = new File(this.getPathInput().concat("\\").concat(fileName));
 		if (!file.canRead()) {
 			throw new Exception("Failed to open file " + fileName + ".");
 		}
-	} 
-
+	}
+	
+	/**
+	 * Check if the file extension is valid.
+	 * @param fileName (String) File name.
+	 * @throws Exception
+	 */
     private void checkExtension(String fileName) throws Exception {
         if(!(fileName.toLowerCase().endsWith(this.extensionAllowed))) {
-            throw new Exception("Invalid format, only allowed " + this.extensionAllowed + " file extension");
+            throw new Exception("Invalid format, only allowed " + this.extensionAllowed + " file extension.");
         }
 
     }
-	
-	
-	
 }

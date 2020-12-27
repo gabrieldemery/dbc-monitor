@@ -1,11 +1,11 @@
 package com.gabrieldemery.dbc.monitor.services.impl;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Objects;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -14,10 +14,11 @@ import com.gabrieldemery.dbc.monitor.models.SaleModel;
 import com.gabrieldemery.dbc.monitor.models.SalesmanModel;
 import com.gabrieldemery.dbc.monitor.services.WriterService;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class WriterServiceImpl implements WriterService {
-	
-	private final Logger logger = LoggerFactory.getLogger(WriterServiceImpl.class);
 	
 	@Value("${folder.output}")
     private String folderOutputPath;
@@ -25,14 +26,20 @@ public class WriterServiceImpl implements WriterService {
 	@Override
 	public void processFile(String fileName, OutputFileModel outputFile) {
 		
+		this.checkFolderOutput();
+		
 		try {
-            String pathWithFile = this.folderOutputPath.concat("\\").concat(fileName.toLowerCase().replace(".dat", ".done.dat"));
+            String pathWithFile = this.getPathOutput().concat("\\").concat(fileName.toLowerCase().replace(".dat", ".done.dat"));
 
             BufferedWriter writer = new BufferedWriter(new FileWriter(pathWithFile));
 
-            writer.write(String.format("Quantidade de clientes no arquivo de entrada: %s\r\n", outputFile.getCustomers().size()));
-
-            writer.write(String.format("Quantidade de vendedores no arquivo de entrada: %s\r\n", outputFile.getSalesmen().size()));
+            if (Objects.nonNull(outputFile.getCustomers()) && !outputFile.getCustomers().isEmpty()) {
+            	writer.write(String.format("Quantidade de clientes no arquivo de entrada: %s\r\n", outputFile.getCustomers().size()));
+            }
+            
+            if (Objects.nonNull(outputFile.getSalesmen()) && !outputFile.getSalesmen().isEmpty()) {
+            	writer.write(String.format("Quantidade de vendedores no arquivo de entrada: %s\r\n", outputFile.getSalesmen().size()));
+            }
 
             SaleModel greaterSale = outputFile.getGreaterSale();
             writer.write(String.format("ID da venda mais cara: %s\r\n", greaterSale != null ? greaterSale.getId() : "N/A"));
@@ -42,8 +49,31 @@ public class WriterServiceImpl implements WriterService {
             
             writer.close();
         } catch (IOException e) {
-            this.logger.error("Erro ao escrever arquivo: " + e.getMessage());
+            log.error("Error writing file: {}", e.getMessage());
         }
+	}
+	
+	/**
+	 * Check if the output folder exists. If not, it will create.
+	 */
+	private void checkFolderOutput() {
+		
+		try {
+	        File directoryOutput = new File(this.getPathOutput());
+	        if (!directoryOutput.exists()) {
+	        	directoryOutput.mkdir();
+	        }
+		} catch (Exception e) {
+			log.error("Failed to create the output folder: {}", e.getMessage());
+		}
+	}
+    
+    /**
+     * Full path of the output folder.
+     * @return (String) Output folder path.
+     */
+	private String getPathOutput() {
+		return System.getProperty("user.home").concat("\\").concat(this.folderOutputPath);
 	}
 	
 }

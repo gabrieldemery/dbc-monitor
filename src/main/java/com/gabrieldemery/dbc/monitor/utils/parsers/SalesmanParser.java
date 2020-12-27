@@ -1,23 +1,21 @@
 package com.gabrieldemery.dbc.monitor.utils.parsers;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import com.gabrieldemery.dbc.monitor.configs.exceptions.InvalidFileDataSizeException;
 import com.gabrieldemery.dbc.monitor.models.SalesmanModel;
 import com.gabrieldemery.dbc.monitor.models.enums.DataEnum;
 import com.gabrieldemery.dbc.monitor.utils.converters.BigDecimalConverter;
 
-public class SalesmanParser {
+@Component
+public class SalesmanParser extends Parser {
 	
-	@Value("${file.separator.data}")
-    private static String FILE_SEPARATOR_DATA;
-	
-	public static SalesmanModel parse(String line) {
+	public SalesmanModel parse(String line) throws Exception {
 
         if(!line.startsWith(DataEnum.SALESMAN.getCode()))
             throw new Exception("The line must start with " + DataEnum.SALESMAN.getCode());
 
-        String[] data = line.split(FILE_SEPARATOR_DATA);
+        String[] data = line.split(this.getFileSeparatorData());
 
         if(data.length != 4){
             throw new InvalidFileDataSizeException("Salesman data size must be 4");

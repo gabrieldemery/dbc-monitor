@@ -8,46 +8,73 @@ import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchService;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Configuration
 public class MonitoringConfig {
 	
-	private final Logger logger = LoggerFactory.getLogger(MonitoringConfig.class);
-	
 	@Value("${folder.monitor}")
     private String folderMonitorPath;
+	
+	@Value("${folder.output}")
+    private String folderOutputPath;
 
     @Bean
     public WatchService watchService() {
-        this.logger.debug("MONITORING_FOLDER: {}", this.folderMonitorPath);
+        log.debug("Monitoring the input folder: {}", this.getPathInput());
         
         WatchService watchService = null;
         
         try {
             watchService = FileSystems.getDefault().newWatchService();
-
-            File directory = new File(this.folderMonitorPath);
-            if (!directory.exists()) {
-                directory.mkdir();
+            
+            File directoryInput = new File(this.getPathInput());
+            if (!directoryInput.exists()) {
+            	if ( !directoryInput.mkdir() ) {
+            		log.info("The input folder could not be created.");
+            	}
             }
             
-            Path path = Paths.get(this.folderMonitorPath);
-            this.logger.debug("Path: {}", path.toString());
+            File directoryOutput = new File(this.getPathOutput());
+            if (!directoryOutput.exists()) {
+            	if ( !directoryOutput.mkdir() ) {
+            		log.info("The output folder could not be created.");
+            	}
+            }
             
-            path.register(
+            Path pathFolderMonitorPath = Paths.get(this.getPathInput());
+            log.debug("Path: {}", pathFolderMonitorPath.toString());
+            
+            pathFolderMonitorPath.register(
                     watchService,
                     StandardWatchEventKinds.ENTRY_CREATE
             );
             
         } catch (IOException e) {
-        	this.logger.error("exception for watch service creation:", e);
+        	log.error("Observation of the input folder failed:", e);
         }
         return watchService;
     }
+    
+    /**
+     * Full path of the input folder.
+     * @return (String) Input folder path.
+     */
+	private String getPathInput() {
+		return System.getProperty("user.home").concat("\\").concat(this.folderMonitorPath);
+	}
+    
+    /**
+     * Full path of the output folder.
+     * @return (String) Output folder path.
+     */
+	private String getPathOutput() {
+		return System.getProperty("user.home").concat("\\").concat(this.folderOutputPath);
+	}
 	
 }
